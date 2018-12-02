@@ -1,3 +1,5 @@
+from collections import deque
+
 def count_chars(s):
     out = {}
     for c in s:
@@ -36,8 +38,10 @@ if __name__ == '__main__':
     print(msg.format(with_three_letters, 'three times'))
     print('Checksum = {}'.format(with_two_letters*with_three_letters))
 
-    for i1, s1 in enumerate(lines):
-        for s2 in lines[i1:]:
+    lines = deque(lines)
+    while lines:
+        s1 = lines.popleft()
+        for s2 in lines:
             dist, common = hamming(s1, s2, full_output=True)
             if dist == 1:
                 print(s1+' and '+s2+' differ by only one letter')
