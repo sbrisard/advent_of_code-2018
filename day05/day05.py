@@ -5,26 +5,23 @@ def should_react(unit1, unit2):
     return unit1 != unit2 and unit1.upper() == unit2.upper()
 
 
-def react_one_pass(polymer):
+def react_full(polymer):
     polymer = list(polymer)
     i = 0
     while i < len(polymer)-1:
         if should_react(polymer[i], polymer[i+1]):
             del polymer[i:i+2]
+            if i > 0:
+                # Step back in order to account for new reactions that
+                # might have been made possible by the present
+                # reaction
+                i -= 1
         else:
             i += 1
     return ''.join(polymer)
 
 
-def react_full(polymer):
-    while True:
-        new_polymer = react_one_pass(polymer)
-        if new_polymer == polymer:
-            return polymer
-        polymer = new_polymer
-
-
-if __name__ == '__main__':
+def test():
     assert should_react('a', 'A')
     assert should_react('A', 'a')
     assert not(should_react('a', 'a'))
@@ -34,9 +31,12 @@ if __name__ == '__main__':
     assert not(should_react('a', 'b'))
     assert not(should_react('b', 'a'))
 
+
+def main():
     with open('input.txt', 'r') as f:
         polymer = f.readline().strip()
 
+    #polymer1 = react_full(polymer)
     polymer1 = react_full(polymer)
     print('After all possible reactions, the resulting polymer contain {} units'.format(len(polymer1)))
 
@@ -55,3 +55,11 @@ if __name__ == '__main__':
 
     print('The unit causing most problems is: '+worst_unit)
     print('After removing this unit, the length of the fully reacted polymer is: {}'.format(minlen))
+
+
+if __name__ == '__main__':
+    main()
+
+# After all possible reactions, the resulting polymer contain 9686 units
+# The unit causing most problems is: k
+# After removing this unit, the length of the fully reacted polymer is: 5524
