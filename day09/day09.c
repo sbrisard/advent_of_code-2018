@@ -10,10 +10,10 @@ typedef struct {
 
 
 typedef struct {
-    GSList* circle;
+    GList* circle;
+    GList* current;
     int length;
-    int current;
-    int *scores;
+    long long *scores;
     int num_players;
 } MarbleGame;
 
@@ -21,10 +21,10 @@ typedef struct {
 MarbleGame* marble_game_new(int num_players) {
     MarbleGame* game = g_new(MarbleGame, 1);
     game->circle = NULL;
+    game->current = NULL;
     game->length = 0;
-    game->current = 0;
     game->num_players = num_players;
-    game->scores = g_new(int, num_players);
+    game->scores = g_new(long long, num_players);
     for (int player = 0; player < num_players; player++) {
 	game->scores[player] = 0;
     }
@@ -33,18 +33,16 @@ MarbleGame* marble_game_new(int num_players) {
 
 
 void marble_game_free(MarbleGame* game) {
-    g_slist_free(game->circle);
+    g_list_free(game->circle);
     g_free(game->scores);
     g_free(game);
 }
 
 
 void marble_game_print(MarbleGame* game) {
-    GSList* iterator = game->circle;
-    for (int i = 0; i < game->length; i++) {
+    for (GList* i = game->circle; i != NULL; i = i->next) {
 	char *template = i == game->current ? "(%d) " : "%d ";
-	printf(template, ((Marble *) iterator->data)->number);
-	iterator = iterator->next;
+	printf(template, ((Marble *) i->data)->number);
     }
 }
 
@@ -58,15 +56,14 @@ void marble_game_print_scores(MarbleGame *game) {
 void marble_game_add(MarbleGame* game, Marble* marble) {
     int position;
     if (game->length == 0) {
-	game->circle = g_slist_append(game->circle, marble);
-	game->current = 0;
+	game->circle = g_list_append(game->circle, marble);
+	game->current = game->circle;
     } else {
-	position = game->current+2;
-	if (position > game->length) {
-	    position -= game->length;
-	}
-	game->circle = g_slist_insert(game->circle, marble, position);
-	game->current = position;
+	GList* position = game->current->next;
+	if (position == NULL) position = game->circle;
+	game->circle = g_list_insert_before(game->circle, position->next,
+					    marble);
+	game->current = position->next;
     }
     game->length += 1;
 }
@@ -82,9 +79,7 @@ int main() {
 
     _Bool verbose = 0;
     Marble* marbles = g_new(Marble, num_marbles);
-    for (int i = 0; i < num_marbles; ++i) {
-	marbles[i].number = i;
-    }
+    for (int i = 0; i < num_marbles; ++i) { marbles[i].number = i; }
 
 
     MarbleGame* game = marble_game_new(num_players);
@@ -95,14 +90,16 @@ int main() {
     	} else {
 	    const int player = i % game->num_players;
     	    game->scores[player] += i;
-    	    int position = game->current-7;
-    	    if (position < 0) position += game->length;
-    	    Marble* to_remove = (Marble*)(g_slist_nth(game->circle, position)->data);
-    	    game->scores[player] += to_remove->number;
-    	    game->circle = g_slist_remove(game->circle, to_remove);
+    	    GList* to_remove = game->current;
+	    for (int j = 0; j < 7; j++) {
+		to_remove = g_list_previous(to_remove);
+		if (to_remove == NULL) to_remove = g_list_last(game->circle);
+	    }
+    	    game->scores[player] += ((Marble*)to_remove->data)->number;
+	    game->current = to_remove->next;
+	    if (game->current == NULL) game->current = game->circle;
+    	    game->circle = g_list_remove_link(game->circle, to_remove);
     	    game->length -= 1;
-    	    if (position > game->length) {position -= game->length;}
-    	    game->current = position;
     	}
 	if (verbose) {
 	    printf("[%d] ", i % game->num_players);
@@ -115,15 +112,15 @@ int main() {
     }
 
     int winner = -1;
-    int highest_score = -1;
+    long long highest_score = -1;
     for (int player = 0; player < game->num_players; ++player) {
-	const int score = game->scores[player];
+	const long long score = game->scores[player];
 	if (score > highest_score) {
 	    winner = player;
 	    highest_score = score;
 	}
     }
-    printf("Player %d wins with score: %d\n", winner, highest_score);
+    printf("Player %d wins with score: %lld\n", winner, highest_score);
 
     /* There is something wrong with these deallocations. */
     /*
