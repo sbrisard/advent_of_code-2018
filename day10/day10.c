@@ -10,8 +10,77 @@ typedef struct {
 
 typedef struct {
     gint xmin, ymin, xmax, ymax, stride;
+    gint *hproj, *vproj;
+} Projections;
+
+
+typedef struct {
+    gint xmin, ymin, xmax, ymax, stride;
     guint8* data;
 } Grid;
+
+
+void points_bounds__(gpointer data, gpointer user_data) {
+    Point* point = (Point*)data;
+    gint *bounds = (gint*)user_data;
+    if (point->x < bounds[0]) bounds[0] = point->x;
+    if (point->y < bounds[1]) bounds[1] = point->y;
+    if (point->x > bounds[2]) bounds[2] = point->x;
+    if (point->y > bounds[3]) bounds[3] = point->y;
+}
+
+
+void points_bounds(GSList* points, gint* bounds) {
+    bounds[0] = G_MAXINT;
+    bounds[1] = G_MAXINT;
+    bounds[2] = G_MININT;
+    bounds[3] = G_MININT;
+    g_slist_foreach(points, points_bounds__, bounds);
+}
+
+
+Projections* projections_new(gint xmin, gint ymin, gint xmax, gint ymax) {
+    Projections* proj = g_new(Projections, 1);
+    proj->xmin = xmin;
+    proj->ymin = ymin;
+    proj->xmax = xmax;
+    proj->ymax = ymax;
+
+    gint width = xmax-xmin+1;
+    proj->vproj = g_new(gint, width);
+    for (int i = 0; i < width; i++) proj->vproj[i] = 0;
+
+    gint height = ymax-ymin+1;
+    proj->hproj = g_new(gint, height);
+    for (int i = 0; i < height; i++) proj->hproj[i] = 0;
+
+    return proj;
+}
+
+
+void projections_free(Projections* proj) {
+    g_free(proj->hproj);
+    g_free(proj->vproj);
+    g_free(proj);
+}
+
+
+void projections__(gpointer data, gpointer user_data) {
+    Point* point = (Point*)data;
+    Projections* proj = (Projections*)user_data;
+    proj->hproj[point->y-proj->ymin] += 1;
+    proj->vproj[point->x-proj->xmin] += 1;
+}
+
+
+Projections* points_projections(GSList* points) {
+    gint bounds[4];
+    points_bounds(points, bounds);
+    Projections *proj = projections_new(bounds[0], bounds[1],
+					bounds[2], bounds[3]);
+    g_slist_foreach(points, projections__, proj);
+    return proj;
+}
 
 
 void points_forward__update(gpointer data, gpointer user_data) {
@@ -67,16 +136,6 @@ void grid_print(Grid* grid) {
 }
 
 
-void fill_grid__update_bounds(gpointer data, gpointer user_data) {
-    Point* point = (Point*)data;
-    gint *bounds = (gint*)user_data;
-    if (point->x < bounds[0]) bounds[0] = point->x;
-    if (point->y < bounds[1]) bounds[1] = point->y;
-    if (point->x > bounds[2]) bounds[2] = point->x;
-    if (point->y > bounds[3]) bounds[3] = point->y;
-}
-
-
 void fill_grid__update_grid(gpointer data, gpointer user_data) {
     Point* point = (Point*)data;
     Grid* grid = (Grid*)user_data;
@@ -88,7 +147,7 @@ void fill_grid__update_grid(gpointer data, gpointer user_data) {
 
 Grid* fill_grid(GSList* points) {
     gint bounds[] = {G_MAXINT, G_MAXINT, G_MININT, G_MININT};
-    g_slist_foreach(points, fill_grid__update_bounds, bounds);
+    points_bounds(points, bounds);
     Grid* grid = grid_new(bounds[0], bounds[1], bounds[2], bounds[3]);
     g_slist_foreach(points, fill_grid__update_grid, grid);
     return grid;
@@ -118,5 +177,14 @@ int main() {
     printf("\n");
     grid = fill_grid(points);
     grid_print(grid);
+
+    Projections* proj = points_projections(points);
+    for (int i = proj->xmin; i <= proj->xmax; i++) {
+	printf("%d ", proj->vproj[i-proj->xmin]);
+    }
+    printf("\n");
+    for (int i = proj->ymin; i <= proj->ymax; i++) {
+	printf("%d ", proj->hproj[i-proj->ymin]);
+    }
     /*grid_free(grid);*/
 }
