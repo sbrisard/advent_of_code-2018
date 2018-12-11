@@ -14,6 +14,19 @@ typedef struct {
 } Grid;
 
 
+void points_forward__update(gpointer data, gpointer user_data) {
+    Point* point = (Point*)data;
+    gint num_steps = ((gint*)user_data)[0];
+    point->x += num_steps*point->vx;
+    point->y += num_steps*point->vy;
+}
+
+
+GSList* points_forward(GSList* points, gint num_steps) {
+    g_slist_foreach(points, points_forward__update, &num_steps);
+}
+
+
 Grid* grid_new(gint xmin, gint ymin, gint xmax, gint ymax) {
     Grid* grid = g_new(Grid, 1);
     grid->xmin = xmin;
@@ -99,6 +112,11 @@ GSList* read_points(char* filename) {
 int main() {
     GSList* points = read_points("reference.txt");
     Grid* grid = fill_grid(points);
+    grid_print(grid);
+    grid_free(grid);
+    points_forward(points, 3);
+    printf("\n");
+    grid = fill_grid(points);
     grid_print(grid);
     /*grid_free(grid);*/
 }
