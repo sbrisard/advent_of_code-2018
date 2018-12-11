@@ -39,8 +39,6 @@ void grid_free(Grid* grid) {
 void grid_print(Grid* grid) {
     gint width = grid->xmax-grid->xmin+1;
     gint height = grid->ymax-grid->ymin+1;
-    printf("%d %d\n", width, height);
-    fflush(stdout);
     guint8* data = grid->data;
     for (int j = 0; j < height; j++) {
 	for (int i = 0; i < width; i++) {
@@ -75,7 +73,6 @@ void fill_grid__update_grid(gpointer data, gpointer user_data) {
 Grid* fill_grid(GSList* points) {
     gint bounds[] = {G_MAXINT, G_MAXINT, G_MININT, G_MININT};
     g_slist_foreach(points, fill_grid__update_bounds, bounds);
-    printf("%d <= x <= %d    %d <= y <= %d\n", bounds[0], bounds[2], bounds[1], bounds[3]);
     Grid* grid = grid_new(bounds[0], bounds[1], bounds[2], bounds[3]);
     g_slist_foreach(points, fill_grid__update_grid, grid);
     return grid;
