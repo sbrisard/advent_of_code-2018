@@ -42,8 +42,11 @@ void grid_print(Grid* grid) {
     guint8* data = grid->data;
     for (int j = 0; j < height; j++) {
 	for (int i = 0; i < width; i++) {
-	    char c = data[0] ? '#' : '.';
-	    printf(&c);
+	    if (data[0]) {
+		printf("#");
+	    } else {
+		printf(".");
+	    }
 	    data += 1;
 	}
 	printf("\n");
