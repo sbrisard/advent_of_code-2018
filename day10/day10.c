@@ -169,22 +169,29 @@ GSList* read_points(char* filename) {
 
 
 int main() {
-    GSList* points = read_points("reference.txt");
-    Grid* grid = fill_grid(points);
-    grid_print(grid);
-    grid_free(grid);
-    points_forward(points, 3);
-    printf("\n");
-    grid = fill_grid(points);
-    grid_print(grid);
-
-    Projections* proj = points_projections(points);
-    for (int i = proj->xmin; i <= proj->xmax; i++) {
-	printf("%d ", proj->vproj[i-proj->xmin]);
+    GSList* points = read_points("input.txt");
+    for (int t = 1;; t++) {
+	points_forward(points, 1);
+	Projections* proj = points_projections(points);
+	int width = proj->xmax-proj->xmin+1;
+	int candidate = 0;
+	for (int i = 0; i < width; i++) {
+	    if (proj->vproj[i] == 8) {
+		candidate = 1;
+		break;
+	    }
+	}
+	projections_free(proj);
+	if (candidate) {
+	    Grid* grid = fill_grid(points);
+	    printf("t = %d -- Is this a readable message (y/n)?\n", t);
+	    printf("\n");
+	    grid_print(grid);
+	    printf("\n");
+	    grid_free(grid);
+	    fflush(stdout);
+	    int answer = fgetc(stdin);
+	    if (answer == 'y') break;
+	}
     }
-    printf("\n");
-    for (int i = proj->ymin; i <= proj->ymax; i++) {
-	printf("%d ", proj->hproj[i-proj->ymin]);
-    }
-    /*grid_free(grid);*/
 }
